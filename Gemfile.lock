@@ -1,0 +1,41 @@
+PATH
+  remote: .
+  specs:
+    big_simon (0.1.0)
+      rya (~> 0.1.3)
+
+GEM
+  remote: https://rubygems.org/
+  specs:
+    abort_if (0.2.0)
+    diff-lcs (1.3)
+    rake (10.5.0)
+    rspec (3.7.0)
+      rspec-core (~> 3.7.0)
+      rspec-expectations (~> 3.7.0)
+      rspec-mocks (~> 3.7.0)
+    rspec-core (3.7.1)
+      rspec-support (~> 3.7.0)
+    rspec-expectations (3.7.0)
+      diff-lcs (>= 1.2.0, < 2.0)
+      rspec-support (~> 3.7.0)
+    rspec-mocks (3.7.0)
+      diff-lcs (>= 1.2.0, < 2.0)
+      rspec-support (~> 3.7.0)
+    rspec-support (3.7.1)
+    rya (0.1.3)
+      abort_if (~> 0.2.0)
+      systemu (~> 2.6, >= 2.6.5)
+    systemu (2.6.5)
+
+PLATFORMS
+  ruby
+
+DEPENDENCIES
+  big_simon!
+  bundler (~> 1.16)
+  rake (~> 10.0)
+  rspec (~> 3.0)
+
+BUNDLED WITH
+   1.16.3
