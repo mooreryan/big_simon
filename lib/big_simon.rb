@@ -1,11 +1,41 @@
 require "rya"
+require "set"
 
 require "big_simon/version"
 
 Time.extend Rya::CoreExtensions::Time
 Process.extend Rya::CoreExtensions::Process
 
+
 module BigSimon
+  class Utils
+    def self.strip_suffix fname
+      fname.sub /.fasta$|.fa$/, ""
+    end
+
+    # @param [Array<Hash>] host_data host info hash tables.  See functions in Parsers class.
+    # @param [Array<String>] programs names of programs generating hash tables (in same order as host_data)
+    def self.collate_host_results host_data, programs
+      Rya::AbortIf.assert host_data.count == programs.count
+
+      hosts = {}
+      all_viruses = host_data.reduce(Set.new) { |acc, ht| acc + ht.keys }
+
+      all_viruses.each do |virus|
+        hosts[virus] = {}
+      end
+
+      host_data.each_with_index do |ht, idx|
+        program = programs[idx]
+
+        ht.each do |virus, host_scores|
+          hosts[virus][program] = host_scores
+        end
+      end
+
+      hosts
+    end
+  end
 
   # Project directories
   ROOT       = File.join __dir__, ".."
@@ -13,9 +43,12 @@ module BigSimon
   SPEC       = File.join ROOT, "spec"
   TEST_FILES = File.join SPEC, "test_files"
 
+
+
+  # Methods for parsing output files
   class Parsers
 
-    # @todo The viruses and hosts will have the file name rather than the ID from the fasta file.
+    # @note VirHostMatcher includes the whole file name as the id of the organism, so we chop off some common endings.
     def self.vir_host_matcher fname
       hosts = nil
 
@@ -26,9 +59,11 @@ module BigSimon
 
         if idx.zero?
           stat, *hosts = line.split ","
+
+          hosts.map! { |str| BigSimon::Utils.strip_suffix str }
         else
           ary   = line.split ","
-          virus = ary.shift
+          virus = BigSimon::Utils.strip_suffix ary.shift
 
           # In this case the best value is the lowest distance.
           dists = ary.map.
@@ -58,7 +93,7 @@ module BigSimon
             host_info[virus] = []
           end
         else
-          ary = line.split "\t"
+          ary  = line.split "\t"
           host = ary.shift
 
           ary.each_with_index do |val, idx|

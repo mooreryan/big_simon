@@ -3,6 +3,58 @@ RSpec.describe BigSimon do
     expect(BigSimon::VERSION).not_to be nil
   end
 
+  describe BigSimon::Utils do
+    describe "::collate_host_results" do
+      it "raises if length of inputs doesn't match" do
+        expect {
+          BigSimon::Utils::collate_host_results [Hash.new], ["", ""]
+        }.to raise_error Rya::AbortIf::Assert::AssertionFailureError
+      end
+
+      it "collates host results" do
+        hd1 = {
+            "AJ609634.snazzy.lala.long_name" => [
+                ["NC_002971", 0.365838], ["NC_002163.snazzy.lala.long_name", 0.380042]
+            ],
+            "DQ113772"                       => [
+                ["NC_002971", 0.360301], ["NC_002163.snazzy.lala.long_name", 0.404101]
+            ],
+        }
+
+        hd2 = {
+            "AJ609634.snazzy.lala.long_name" => [
+                ["NC_002971", -1.38868], ["NC_002163.snazzy.lala.long_name", -1.39021]
+            ],
+            "DQ113772"                       => [
+                ["NC_002163.snazzy.lala.long_name", -1.37943], ["NC_002971", -1.38371]
+            ],
+        }
+
+        expected = {
+            "AJ609634.snazzy.lala.long_name" => {
+                "VirHostMatcher" => [
+                    ["NC_002971", 0.365838], ["NC_002163.snazzy.lala.long_name", 0.380042]
+                ],
+                "WIsH"           => [
+                    ["NC_002971", -1.38868], ["NC_002163.snazzy.lala.long_name", -1.39021]
+                ],
+            },
+            "DQ113772"                       => {
+                "VirHostMatcher" => [
+                    ["NC_002971", 0.360301], ["NC_002163.snazzy.lala.long_name", 0.404101]              ],
+                "WIsH"           => [
+                    ["NC_002163.snazzy.lala.long_name", -1.37943], ["NC_002971", -1.38371]
+                ],
+            }
+        }
+
+        actual = BigSimon::Utils.collate_host_results [hd1, hd2], ["VirHostMatcher", "WIsH"]
+
+        expect(actual).to eq expected
+      end
+    end
+  end
+
   describe BigSimon::Parsers do
     describe "::vir_host_matcher" do
       let(:fname) { File.join BigSimon::TEST_FILES, "d2star_k6.csv" }
@@ -10,11 +62,11 @@ RSpec.describe BigSimon do
       it "parses vir_host_matcher output" do
         result   = BigSimon::Parsers.vir_host_matcher fname
         expected = {
-            "AJ609634.fasta" => [
-                ["NC_002971.fasta", 0.365838], ["NC_002163.fasta", 0.380042]
+            "AJ609634.snazzy.lala.long_name" => [
+                ["NC_002971", 0.365838], ["NC_002163.snazzy.lala.long_name", 0.380042]
             ],
-            "DQ113772.fasta" => [
-                ["NC_002971.fasta", 0.360301], ["NC_002163.fasta", 0.404101]
+            "DQ113772"                       => [
+                ["NC_002971", 0.360301], ["NC_002163.snazzy.lala.long_name", 0.404101]
             ],
         }
 
@@ -33,11 +85,11 @@ RSpec.describe BigSimon do
       it "parses wish output" do
         result   = BigSimon::Parsers.wish fname
         expected = {
-            "AJ609634" => [
-                ["NC_002971", -1.38868], ["NC_002163", -1.39021]
+            "AJ609634.snazzy.lala.long_name" => [
+                ["NC_002971", -1.38868], ["NC_002163.snazzy.lala.long_name", -1.39021]
             ],
-            "DQ113772" => [
-                ["NC_002163", -1.37943], ["NC_002971", -1.38371]
+            "DQ113772"                       => [
+                ["NC_002163.snazzy.lala.long_name", -1.37943], ["NC_002971", -1.38371]
             ],
         }
 

@@ -46,8 +46,9 @@ if not os.path.exists(tmpDir) :
 filelog = open(os.path.join(tmpDir, 'vhm.log'), 'w')
 
 ## name length ##
-nameLen = 93 - len(options.outDir)
+# nameLen = 93 - len(options.outDir)
 #### possibly because of the kmercount folder name for each contig is too long?
+nameLen = 99999999999999
 
 
 #################### 0: preparation ############################
@@ -211,7 +212,7 @@ if options.hostTaxaFile is None :
 	hostTaxaFileWrite = open(hostTaxaFile, 'w') ## make file blank
 	hostTaxaFileWrite.close()
 	hostTaxaFileWrite = open(hostTaxaFile, 'a')
-	
+
 	hostTaxaFileWrite.write("hostNCBIName	hostName	hostSuperkingdom	hostPhylum	hostClass	hostOrder	hostFamily	hostGenus	hostSpecies\n")
 	for currentFileName in hostFaList :
 		if currentFileName.startswith('.') :
@@ -235,7 +236,7 @@ else :
 	hostTaxaTable = numpy.genfromtxt(options.hostTaxaFile,delimiter="\t", dtype=str)
 	hostTaxaTable[hostTaxaTable=='']='unknown'
 	numpy.savetxt(hostTaxaFile, hostTaxaTable, fmt="%s", delimiter='\t', newline='\n')
-    
+
 filelog.flush()
 
 #################### 1: count kmer and prepare list files ############################
@@ -259,7 +260,7 @@ for currentFileName in virusFaList :
 	filelog.write("Step 1: counting kmers for virus " + currentFileNameS + "\n")
 	for w in range(1, (kmax+1)) :
 		currentFilePath = os.path.join(options.virusFaDir, currentFileName)
-    
+
 		currentKmerCountPath = os.path.join(kmerCountPath, currentFileNameS)
 		cmdKmer = countKmerOut + " -l -k " + str(w) + \
 										" -i " + currentFilePath +\
@@ -278,9 +279,9 @@ for currentFileName in virusFaList :
 		sys.stderr.write( "ERROR in counting kmers for " + currentFileNameS + "\n")
 		filelog.write( "ERROR in counting kmers for " + currentFileNameS + "\n")
 		sys.exit(0)
-  
+
 	filelog.flush()
-  
+
 	end_time = time.time()
 	count += 1
 	#sys.stdout.write(str(end_time - start_time) + "s for " + str(count) + " seqs \n")
@@ -329,9 +330,9 @@ for currentFileName in hostFaList :
 		sys.stderr.write( "ERROR in counting kmers for " + currentFileNameS + "\n")
 		filelog.write( "ERROR in counting kmers for " + currentFileNameS + "\n")
 		sys.exit(0)
-  
+
 	filelog.flush()
-  
+
 	end_time = time.time()
 	count += 1
 	#sys.stdout.write(str(end_time - start_time) + "s for " + str(count) + " seqs \n")
@@ -366,7 +367,7 @@ for c in iter(cmdCptMeasureOut.stderr.readline, b''):
 	sys.stdout.write(c.decode("utf-8"))
 	filelog.write(c.decode("utf-8"))
 	filelog.flush()
-  
+
 	end_time = time.time()
 	count += 1
 	sys.stdout.write("   (Average time for computing dissimilarities for one virus-host pair: " + str(round((end_time - start_time)/count/len(virusFaList), 4)) + "s) \n")
