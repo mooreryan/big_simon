@@ -3,11 +3,11 @@ RSpec.describe BigSimon do
     expect(BigSimon::VERSION).not_to be nil
   end
 
-  describe BigSimon::Utils do
+  describe BigSimon::Pipeline do
     describe "::collate_host_results" do
       it "raises if length of inputs doesn't match" do
         expect {
-          BigSimon::Utils::collate_host_results [Hash.new], ["", ""]
+          BigSimon::Pipeline::collate_host_results [Hash.new], ["", ""]
         }.to raise_error Rya::AbortIf::Assert::AssertionFailureError
       end
 
@@ -48,7 +48,7 @@ RSpec.describe BigSimon do
             }
         }
 
-        actual = BigSimon::Utils.collate_host_results [hd1, hd2], ["VirHostMatcher", "WIsH"]
+        actual = BigSimon::Pipeline.collate_host_results [hd1, hd2], ["VirHostMatcher", "WIsH"]
 
         expect(actual).to eq expected
       end
@@ -114,28 +114,43 @@ RSpec.describe BigSimon do
     describe "::wish" do
       let(:program_name) { "WIsH" }
 
-      it "removes model dir" do
+      it "has the right output files" do
         FileUtils.rm_r outdir if Dir.exist? outdir
 
+        expected_outf = File.join outdir, "wish.txt"
+        actual_outf = nil
+
         expect {
-          BigSimon::Runners.wish exe, vir_dir, host_dir, outdir, threads
+          actual_outf = BigSimon::Runners.wish exe, vir_dir, host_dir, outdir, threads
         }.not_to raise_error
 
         expect(File).not_to exist(File.join outdir, "model")
+
+        expect(File).to exist(expected_outf)
+        expect(actual_outf).to eq expected_outf
       end
     end
 
     describe "::vir_host_matcher" do
       let(:program_name) { "vhm.py" }
 
-      it "deletes the extra stuff" do
+      # Do all the output tests in one run so that we don't rerun the pipeline a lot.
+      it "has the right output files" do
+        FileUtils.rm_r outdir if Dir.exist? outdir
+
+        expected_outf = File.join outdir, "vir_host_matcher.txt"
+        actual_outf = nil
+
         expect {
-          BigSimon::Runners.vir_host_matcher exe, vir_dir, host_dir, outdir
+          actual_outf = BigSimon::Runners.vir_host_matcher exe, vir_dir, host_dir, outdir
         }.not_to raise_error
 
         expect(File).not_to exist(File.join outdir, "tmp")
         expect(File).not_to exist(File.join outdir, "d2star_k6_main.html")
         expect(File).not_to exist(File.join outdir, "hostTaxa.txt_new.txt")
+
+        expect(File).to exist(expected_outf)
+        expect(actual_outf).to eq expected_outf
       end
     end
   end

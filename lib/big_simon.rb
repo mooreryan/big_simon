@@ -8,11 +8,64 @@ Process.extend Rya::CoreExtensions::Process
 
 
 module BigSimon
+  # Project directories
+  ROOT       = File.join __dir__, ".."
+  BIN        = File.join ROOT, "vendor", "bin", "mac"
+  SPEC       = File.join ROOT, "spec"
+  TEST_FILES = File.join SPEC, "test_files"
+  WISH = File.join BIN, "WIsH"
+  VHM = File.join BIN, "vhm.py"
+
+  # @todo These don't have unit tests yet.
+  # @note Skips any duplicate IDs.  Only keeps the first one.
   class Utils
+    def self.set_up_tmp_dirs fastas, tmpdir, which
+      Object::FileUtils.mkdir_p tmpdir
+
+      name_map = {}
+      all_ids = Set.new
+
+      seq_num = -1
+      fastas.each do |fname|
+        ParseFasta::SeqFile.open(fname).each_record do |rec|
+          if all_ids.include? rec.id
+            Rya::AbortIf.logger.warn { "#{rec.id} was seen more than one time!  Duplicate organism IDs are not allowed, so we will only keep the first one."}
+          else
+            all_ids << rec.id
+
+            seq_num += 1
+
+            new_id = "#{which}_#{seq_num}"
+            name_map[new_id] = rec.id
+
+            outfname = File.join tmpdir, "#{new_id}.fa"
+
+            File.open(outfname, "w") do |f|
+              f.puts rec
+            end
+          end
+        end
+      end
+
+      [name_map, all_ids]
+    end
+
     def self.strip_suffix fname
       fname.sub /.fasta$|.fa$/, ""
     end
 
+    def self.check_file! fname
+      Rya::AbortIf.abort_if fname && !File.exist?(fname),
+                            "#{fname} doesn't exist!  Try big_simon --help for help."
+    end
+
+    def self.check_opt! opts, arg
+      Rya::AbortIf.abort_unless opts.send(:fetch, "#{arg}_given".to_sym),
+                                "You must specify --#{arg.to_s.tr('_', '-')}.  Try big_simon --help for help."
+    end
+  end
+
+  class Pipeline
     # @param [Array<Hash>] host_data host info hash tables.  See functions in Parsers class.
     # @param [Array<String>] programs names of programs generating hash tables (in same order as host_data)
     def self.collate_host_results host_data, programs
@@ -36,13 +89,6 @@ module BigSimon
       hosts
     end
   end
-
-  # Project directories
-  ROOT       = File.join __dir__, ".."
-  BIN        = File.join ROOT, "vendor", "bin", "mac"
-  SPEC       = File.join ROOT, "spec"
-  TEST_FILES = File.join SPEC, "test_files"
-
 
 
   # Methods for parsing output files
@@ -133,12 +179,18 @@ module BigSimon
       "-c predict " \
       "-g #{vir_dir} " \
       "-m #{model_dir} " \
-      "-r #{outdir} -b"
+      "-r #{outdir}"
 
       Process.run_and_time_it! "Building model", build_model
       Process.run_and_time_it! "Predicting host", predict
 
       FileUtils.rm_r model_dir if Dir.exist? model_dir
+
+      outf = File.join outdir, "llikelihood.matrix"
+      new_outf = File.join outdir, "wish.txt"
+      FileUtils.mv outf, new_outf
+
+      new_outf
     end
 
     def self.vir_host_matcher exe, vir_dir, host_dir, outdir
@@ -161,6 +213,12 @@ module BigSimon
 
         FileUtils.rm path if File.exist? path
       end
+
+      outf = File.join outdir, "d2star_k6.csv"
+      new_outf = File.join outdir, "vir_host_matcher.txt"
+      FileUtils.mv outf, new_outf
+
+      new_outf
     end
   end
 end

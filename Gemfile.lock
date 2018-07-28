@@ -2,13 +2,16 @@ PATH
   remote: .
   specs:
     big_simon (0.0.1)
+      parse_fasta (~> 2.5, >= 2.5.2)
       rya (~> 0.2.0)
+      trollop (~> 2.1, >= 2.1.3)
 
 GEM
   remote: https://rubygems.org/
   specs:
     abort_if (0.2.0)
     diff-lcs (1.3)
+    parse_fasta (2.5.2)
     rake (10.5.0)
     rspec (3.7.0)
       rspec-core (~> 3.7.0)
@@ -27,6 +30,7 @@ GEM
       abort_if (~> 0.2.0)
       systemu (~> 2.6, >= 2.6.5)
     systemu (2.6.5)
+    trollop (2.1.3)
 
 PLATFORMS
   ruby
