@@ -10,14 +10,12 @@ RSpec.describe BigSimon do
       it "parses vir_host_matcher output" do
         result   = BigSimon::Parsers.vir_host_matcher fname
         expected = {
-            "AJ609634.fasta" => {
-                best: "NC_002971.fasta",
-                all:  [["NC_002971.fasta", 0.365838], ["NC_002163.fasta", 0.380042]]
-            },
-            "DQ113772.fasta" => {
-                best: "NC_002971.fasta",
-                all:  [["NC_002971.fasta", 0.360301], ["NC_002163.fasta", 0.404101]]
-            },
+            "AJ609634.fasta" => [
+                ["NC_002971.fasta", 0.365838], ["NC_002163.fasta", 0.380042]
+            ],
+            "DQ113772.fasta" => [
+                ["NC_002971.fasta", 0.360301], ["NC_002163.fasta", 0.404101]
+            ],
         }
 
         expect(result).to eq expected
@@ -28,6 +26,30 @@ RSpec.describe BigSimon do
         it "handles duplicate host names"
       end
     end
+
+    describe "::wish" do
+      let(:fname) { File.join BigSimon::TEST_FILES, "llikelihood.matrix" }
+
+      it "parses wish output" do
+        result   = BigSimon::Parsers.wish fname
+        expected = {
+            "AJ609634" => [
+                ["NC_002971", -1.38868], ["NC_002163", -1.39021]
+            ],
+            "DQ113772" => [
+                ["NC_002163", -1.37943], ["NC_002971", -1.38371]
+            ],
+        }
+
+        expect(result).to eq expected
+      end
+
+      context "bad input data" do
+        it "handles duplicate virus names"
+        it "handles duplicate host names"
+      end
+    end
+
   end
 
   describe BigSimon::Runners do

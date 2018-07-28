@@ -15,6 +15,7 @@ module BigSimon
 
   class Parsers
 
+    # @todo The viruses and hosts will have the file name rather than the ID from the fasta file.
     def self.vir_host_matcher fname
       hosts = nil
 
@@ -29,22 +30,52 @@ module BigSimon
           ary   = line.split ","
           virus = ary.shift
 
+          # In this case the best value is the lowest distance.
           dists = ary.map.
               with_index { |dist, idx| [hosts[idx], dist.to_f] }.
               sort_by { |_, dist| dist }
 
-          best_host = dists[0][0]
-
-          host_info[virus] = {
-              best: best_host,
-              all:  dists
-          }
+          host_info[virus] = dists
         end
       end
 
       host_info
     end
+
+    # @note The viruses and hosts will have the ID rather than the file name.
+    def self.wish fname
+      viruses = nil
+
+      host_info = {}
+      File.open(fname, "rt").each_line.with_index do |line, idx|
+        line.chomp!
+
+        if idx.zero?
+          viruses = line.split "\t"
+
+          # Set up the hash table
+          viruses.each do |virus|
+            host_info[virus] = []
+          end
+        else
+          ary = line.split "\t"
+          host = ary.shift
+
+          ary.each_with_index do |val, idx|
+            host_info[viruses[idx]] << [host, val.to_f]
+          end
+        end
+      end
+
+      host_info.each do |virus, hosts|
+        hosts.sort_by! { |host, val| val }
+        hosts.reverse!
+      end
+
+      host_info
+    end
   end
+
 
   class Runners
 
