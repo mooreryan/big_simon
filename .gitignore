@@ -18,5 +18,4 @@
 
 vendor/repos
 
-# For now ignore test_files
-spec/test_files
+test_files/test_output
