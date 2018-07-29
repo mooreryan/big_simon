@@ -1,10 +1,14 @@
 #!/usr/bin/env ruby
 Signal.trap("PIPE", "EXIT")
 
+require "pp"
+
 require "parse_fasta"
 require "trollop"
 
 require "big_simon"
+
+# TODO make scaled scores with high score being better.
 
 opts = Trollop.options do
   version BigSimon::VERSION_BANNER
@@ -14,6 +18,8 @@ opts = Trollop.options do
 #{BigSimon::VERSION_BANNER}
 
   Hi, I'm BigSimon!  I'm here to help you figure out the hosts for your viruses.
+
+  The scaled scores run from 0 to 1 with lower scores being better.
 
   Options:
   EOS
@@ -47,102 +53,86 @@ threads      = opts[:threads]
 virus_fnames = opts[:viruses]
 host_fnames  = opts[:hosts]
 
+FileUtils.mkdir_p outdir
+
 tmpdir       = File.join opts[:outdir], "big_simon_tmp"
 tmpdir_virus = File.join tmpdir, "virus"
 tmpdir_host  = File.join tmpdir, "host"
 
-predictons_dir = File.join outdir, "individual_predictions"
+all_predictions_fname = File.join outdir, "scores_all.txt"
+mean_scaled_scores_fname = File.join outdir, "scores_scaled.mean.txt"
 
-all_predictions_fname = File.join outdir, "all_predictions.txt"
+scores_files = {}
+programs.each do |program|
+  raw_fname = File.join outdir, "scores_raw.#{program}.txt"
+  scaled_fname = File.join outdir, "scores_scaled.#{program}.txt"
+
+  scores_files[program]  = {
+    raw: File.open(raw_fname, "w"),
+    scaled: File.open(scaled_fname, "w")
+  }
+end
 
 name_map_virus, all_ids_virus = BigSimon::Utils.set_up_tmp_dirs virus_fnames, tmpdir_virus, "virus"
 name_map_host, all_ids_host   = BigSimon::Utils.set_up_tmp_dirs host_fnames, tmpdir_host, "host"
 
-wish_outf = BigSimon::Runners.wish BigSimon::WISH, tmpdir_virus, tmpdir_host, predictons_dir, threads
-vhm_outf  = BigSimon::Runners.vir_host_matcher BigSimon::VHM, tmpdir_virus, tmpdir_host, predictons_dir
+wish_outf = BigSimon::Runners.wish BigSimon::WISH, tmpdir_virus, tmpdir_host, tmpdir, threads
+vhm_outf  = BigSimon::Runners.vir_host_matcher BigSimon::VHM, tmpdir_virus, tmpdir_host, tmpdir
 
 host_info_wish = BigSimon::Parsers.wish wish_outf
 host_info_vhm  = BigSimon::Parsers.vir_host_matcher vhm_outf
 
-host_info = BigSimon::Pipeline.collate_host_results [host_info_wish, host_info_vhm], programs
+host_info_simple_names = BigSimon::Pipeline.collate_host_results [host_info_wish, host_info_vhm], programs
+host_info = BigSimon::Pipeline.map_taxa host_info_simple_names, name_map_virus, name_map_host
 
-mean_rank       = {}
-all_predictions = []
-host_info.each do |virus, program_predictions|
-  program_predictions.each do |program, predictions|
-    predictions.each_with_index do |(host, score), idx|
-      rank = idx + 1
+puts
+pp host_info
+puts
 
-      all_predictions << [name_map_virus[virus], name_map_host[host], program, score, rank]
+# Just a basic all info file
+File.open all_predictions_fname, "w" do |f|
+  f.puts %w[virus host program score scaled.score].join "\t"
+
+  host_info.each do |virus, h1|
+    h1.each do |host, h2|
+      lines = {}
+
+      h2[:scores].each do |program, score|
+        lines[[virus, host, program]] = [score]
+
+        scores_files[program][:raw].puts [virus, host, score].join "\t"
+      end
+
+      # Add in the scaled score too.
+      h2[:scaled_scores].each do |program, score|
+        lines[[virus, host, program]] << score
+
+        scores_files[program][:scaled].puts [virus, host, score].join "\t"
+      end
+
+      lines.each do |(virus, host, program), (score, scaled_score)|
+        f.puts [virus, host, program, score, scaled_score].join "\t"
+      end
     end
   end
 end
 
-all_vs = Set.new
-all_hs = Set.new
-all_predictions.each do |virus, host, program, score, rank|
-  all_vs << virus
-  all_hs << host
+# A file with mean scaled scores.
+File.open mean_scaled_scores_fname, "w" do |f|
+  f.puts %w[virus host score].join "\t"
 
-  unless mean_rank.has_key? virus
-    mean_rank[virus] = {}
-  end
+  host_info.each do |virus, h1|
+    h1.each do |host, h2|
+      scaled_scores = h2[:scaled_scores].values
 
-  unless mean_rank[virus].has_key? host
-    mean_rank[virus][host] = []
-  end
-  mean_rank[virus][host] << rank
-end
+      mean_scaled_score = scaled_scores.reduce(:+) / scaled_scores.length.to_f
 
-
-mean_ranks_fname = File.join outdir, "mean_ranks.txt"
-File.open(mean_ranks_fname, "w") do |f|
-
-  # lock the order
-  all_vs = all_vs.to_a
-  all_hs = all_hs.to_a
-
-  f.puts all_hs.join "\t"
-
-  all_vs.each do |virus|
-    f.print virus
-    all_hs.each do |host|
-      p [:apple, mean_rank[virus][host]]
-
-      f.print "\t#{mean_rank[virus][host].reduce(:+) / mean_rank[virus][host].count.to_f}"
+      f.puts [virus, host, mean_scaled_score].join "\t"
     end
-
-    f.puts
-  end
-
-end
-
-
-# Sort by virus, then by host, then by program.
-# TODO change the order of the outputs rather than sorting them after the fact.
-all_predictions.sort! do |(vir1, host1, prog1, _, _), (vir2, host2, prog2, _, _)|
-  vir_comp = vir1 <=> vir2
-
-  if vir_comp.zero?
-    host_comp = host1 <=> host2
-
-    if host_comp.zero?
-      prog_comp = prog1 <=> prog2
-    else
-      host_comp
-    end
-  else
-    vir_comp
   end
 end
 
-File.open(all_predictions_fname, "w") do |f|
-  f.puts %w[virus host program rank score].join "\t"
-
-  all_predictions.each do |ary|
-    f.puts ary.join "\t"
-  end
+scores_files.each do |program, file|
+  file.values.map(&:close)
 end
-
-
 FileUtils.rm_r tmpdir
