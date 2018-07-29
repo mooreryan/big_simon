@@ -155,23 +155,6 @@ RSpec.describe BigSimon do
 
 
   describe BigSimon::Pipeline do
-    describe "::map_taxa!" do
-      it "maps viral and host taxa in collated results to original name" do
-        virus_name_map = {
-          SpecConst::VIRUS_1 => SpecConst::VIRUS_1_NEW_NAME,
-          SpecConst::VIRUS_2 => SpecConst::VIRUS_2_NEW_NAME,
-        }
-        host_name_map = {
-          SpecConst::HOST_1 => SpecConst::HOST_1_NEW_NAME,
-          SpecConst::HOST_2 => SpecConst::HOST_2_NEW_NAME,
-        }
-
-        actual = BigSimon::Pipeline.map_taxa collated_host_table, virus_name_map, host_name_map
-
-        expect(actual).to eq collated_host_table_mapped
-      end
-    end
-
     describe "::collate_host_results" do
       it "raises if length of inputs doesn't match" do
         expect {
@@ -183,6 +166,23 @@ RSpec.describe BigSimon do
         actual = BigSimon::Pipeline.collate_host_results [parsed_output_vhm, parsed_output_wish], [SpecConst::PROGRAM_1, SpecConst::PROGRAM_2]
 
         expect(actual).to eq collated_host_table
+      end
+    end
+
+    describe "::map_taxa" do
+      it "maps viral and host taxa in collated results to original name" do
+        virus_name_map = {
+          SpecConst::VIRUS_1 => SpecConst::VIRUS_1_NEW_NAME,
+          SpecConst::VIRUS_2 => SpecConst::VIRUS_2_NEW_NAME,
+        }
+        host_name_map  = {
+          SpecConst::HOST_1 => SpecConst::HOST_1_NEW_NAME,
+          SpecConst::HOST_2 => SpecConst::HOST_2_NEW_NAME,
+        }
+
+        actual = BigSimon::Pipeline.map_taxa collated_host_table, virus_name_map, host_name_map
+
+        expect(actual).to eq collated_host_table_mapped
       end
     end
   end
@@ -267,6 +267,35 @@ RSpec.describe BigSimon do
 
         expect(File).to exist(expected_outf)
         expect(actual_outf).to eq expected_outf
+      end
+    end
+
+    describe "::heatmaps" do
+      it "makes heatmaps" do
+        indir = File.join BigSimon::TEST_FILES, "outdir_for_heatmaps"
+        outdir = File.join indir, "outdir"
+
+        FileUtils.rm_r outdir if Dir.exist? outdir
+
+        actual_outfiles = nil
+        expect {
+          actual_outfiles = BigSimon::Runners.heatmaps "Rscript", indir, outdir
+        }.not_to raise_error
+
+        expected_outfiles = []
+        Dir.glob("#{indir}/*.txt").each do |infile|
+          ext = File.extname infile
+          base = File.basename infile, ext
+
+          outfile = File.join outdir, "#{base}.heatmap.pdf"
+          expected_outfiles << outfile
+
+          puts outfile
+
+          expect(File).to exist outfile
+        end
+
+        expect(actual_outfiles).to eq expected_outfiles
       end
     end
   end
