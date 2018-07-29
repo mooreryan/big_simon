@@ -2,8 +2,14 @@ module SpecConst
   VIRUS_1 = "AJ609634.snazzy.lala.long_name"
   VIRUS_2 = "DQ113772"
 
+  VIRUS_1_NEW_NAME = "apple pie good"
+  VIRUS_2_NEW_NAME = "and reaaly tasty"
+
   HOST_1 = "NC_002971"
   HOST_2 = "NC_002163.snazzy.lala.long_name"
+
+  HOST_1_NEW_NAME = "ryan moore"
+  HOST_2_NEW_NAME = "amelia harrison"
 
   PROGRAM_1 = "VirHostMatcher"
   PROGRAM_2 = "WIsH"
@@ -49,8 +55,123 @@ RSpec.describe BigSimon do
     }
   end
 
+  let(:collated_host_table) do
+    {
+      SpecConst::VIRUS_1 => {
+        SpecConst::HOST_1 => {
+          scores:        {
+            SpecConst::PROGRAM_1 => 0.365838,
+            SpecConst::PROGRAM_2 => -1.38868,
+          },
+          scaled_scores: {
+            SpecConst::PROGRAM_1 => 0.365838,
+            SpecConst::PROGRAM_2 => BigSimon::Utils.scale_log_likelihood(-1.38868),
+          },
+        },
+        SpecConst::HOST_2 => {
+          scores:        {
+            SpecConst::PROGRAM_1 => 0.380042,
+            SpecConst::PROGRAM_2 => -1.39021,
+          },
+          scaled_scores: {
+            SpecConst::PROGRAM_1 => 0.380042,
+            SpecConst::PROGRAM_2 => BigSimon::Utils.scale_log_likelihood(-1.39021),
+          },
+        },
+      },
+      SpecConst::VIRUS_2 => {
+        SpecConst::HOST_1 => {
+          scores:        {
+            SpecConst::PROGRAM_1 => 0.360301,
+            SpecConst::PROGRAM_2 => -1.38371,
+          },
+          scaled_scores: {
+            SpecConst::PROGRAM_1 => 0.360301,
+            SpecConst::PROGRAM_2 => BigSimon::Utils.scale_log_likelihood(-1.38371),
+          },
+        },
+        SpecConst::HOST_2 => {
+          scores:        {
+            SpecConst::PROGRAM_1 => 0.404101,
+            SpecConst::PROGRAM_2 => -1.37943,
+          },
+          scaled_scores: {
+            SpecConst::PROGRAM_1 => 0.404101,
+            SpecConst::PROGRAM_2 => BigSimon::Utils.scale_log_likelihood(-1.37943),
+          },
+        },
+      },
+    }
+  end
+
+  let :collated_host_table_mapped do
+    {
+      SpecConst::VIRUS_1_NEW_NAME => {
+        SpecConst::HOST_1_NEW_NAME => {
+          scores:        {
+            SpecConst::PROGRAM_1 => 0.365838,
+            SpecConst::PROGRAM_2 => -1.38868,
+          },
+          scaled_scores: {
+            SpecConst::PROGRAM_1 => 0.365838,
+            SpecConst::PROGRAM_2 => BigSimon::Utils.scale_log_likelihood(-1.38868),
+          },
+        },
+        SpecConst::HOST_2_NEW_NAME => {
+          scores:        {
+            SpecConst::PROGRAM_1 => 0.380042,
+            SpecConst::PROGRAM_2 => -1.39021,
+          },
+          scaled_scores: {
+            SpecConst::PROGRAM_1 => 0.380042,
+            SpecConst::PROGRAM_2 => BigSimon::Utils.scale_log_likelihood(-1.39021),
+          },
+        },
+      },
+      SpecConst::VIRUS_2_NEW_NAME => {
+        SpecConst::HOST_1_NEW_NAME => {
+          scores:        {
+            SpecConst::PROGRAM_1 => 0.360301,
+            SpecConst::PROGRAM_2 => -1.38371,
+          },
+          scaled_scores: {
+            SpecConst::PROGRAM_1 => 0.360301,
+            SpecConst::PROGRAM_2 => BigSimon::Utils.scale_log_likelihood(-1.38371),
+          },
+        },
+        SpecConst::HOST_2_NEW_NAME => {
+          scores:        {
+            SpecConst::PROGRAM_1 => 0.404101,
+            SpecConst::PROGRAM_2 => -1.37943,
+          },
+          scaled_scores: {
+            SpecConst::PROGRAM_1 => 0.404101,
+            SpecConst::PROGRAM_2 => BigSimon::Utils.scale_log_likelihood(-1.37943),
+          },
+        },
+      },
+    }
+  end
+
 
   describe BigSimon::Pipeline do
+    describe "::map_taxa!" do
+      it "maps viral and host taxa in collated results to original name" do
+        virus_name_map = {
+          SpecConst::VIRUS_1 => SpecConst::VIRUS_1_NEW_NAME,
+          SpecConst::VIRUS_2 => SpecConst::VIRUS_2_NEW_NAME,
+        }
+        host_name_map = {
+          SpecConst::HOST_1 => SpecConst::HOST_1_NEW_NAME,
+          SpecConst::HOST_2 => SpecConst::HOST_2_NEW_NAME,
+        }
+
+        actual = BigSimon::Pipeline.map_taxa collated_host_table, virus_name_map, host_name_map
+
+        expect(actual).to eq collated_host_table_mapped
+      end
+    end
+
     describe "::collate_host_results" do
       it "raises if length of inputs doesn't match" do
         expect {
@@ -59,56 +180,9 @@ RSpec.describe BigSimon do
       end
 
       it "collates host results" do
-        expected = {
-          SpecConst::VIRUS_1 => {
-            SpecConst::HOST_1 => {
-              scores:        {
-                SpecConst::PROGRAM_1 => 0.365838,
-                SpecConst::PROGRAM_2 => -1.38868,
-              },
-              scaled_scores: {
-                SpecConst::PROGRAM_1 => 0.365838,
-                SpecConst::PROGRAM_2 => BigSimon::Utils.scale_log_likelihood(-1.38868),
-              },
-            },
-            SpecConst::HOST_2 => {
-              scores:        {
-                SpecConst::PROGRAM_1 => 0.380042,
-                SpecConst::PROGRAM_2 => -1.39021,
-              },
-              scaled_scores: {
-                SpecConst::PROGRAM_1 => 0.380042,
-                SpecConst::PROGRAM_2 => BigSimon::Utils.scale_log_likelihood(-1.39021),
-              },
-            },
-          },
-          SpecConst::VIRUS_2 => {
-            SpecConst::HOST_1 => {
-              scores:        {
-                SpecConst::PROGRAM_1 => 0.360301,
-                SpecConst::PROGRAM_2 => -1.38371,
-              },
-              scaled_scores: {
-                SpecConst::PROGRAM_1 => 0.360301,
-                SpecConst::PROGRAM_2 => BigSimon::Utils.scale_log_likelihood(-1.38371),
-              },
-            },
-            SpecConst::HOST_2 => {
-              scores:        {
-                SpecConst::PROGRAM_1 => 0.404101,
-                SpecConst::PROGRAM_2 => -1.37943,
-              },
-              scaled_scores: {
-                SpecConst::PROGRAM_1 => 0.404101,
-                SpecConst::PROGRAM_2 => BigSimon::Utils.scale_log_likelihood(-1.37943),
-              },
-            },
-          },
-        }
-
         actual = BigSimon::Pipeline.collate_host_results [parsed_output_vhm, parsed_output_wish], [SpecConst::PROGRAM_1, SpecConst::PROGRAM_2]
 
-        expect(actual).to eq expected
+        expect(actual).to eq collated_host_table
       end
     end
   end

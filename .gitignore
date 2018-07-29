@@ -21,3 +21,8 @@ vendor/repos
 test_files/test_output
 
 0000TEST
+
+apple.txt
+stats.r
+toyexample_out/
+
