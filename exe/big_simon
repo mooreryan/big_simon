@@ -107,6 +107,8 @@ File.open(mean_ranks_fname, "w") do |f|
   all_vs.each do |virus|
     f.print virus
     all_hs.each do |host|
+      p [:apple, mean_rank[virus][host]]
+
       f.print "\t#{mean_rank[virus][host].reduce(:+) / mean_rank[virus][host].count.to_f}"
     end
 
