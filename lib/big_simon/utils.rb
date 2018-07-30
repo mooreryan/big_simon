@@ -49,7 +49,7 @@ draw.heatmap <- function(infname, outfname) {
               margins=c(11, 11), cexRow=size, cexCol=size,
 
               ## Key labeling
-              key.xlab="Mean score (lower is better)")
+              key.xlab="Score")
 
     invisible(dev.off())
 }

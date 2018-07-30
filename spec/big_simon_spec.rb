@@ -62,12 +62,12 @@ RSpec.describe BigSimon do
 
     { # H1 is 2971, H2 is 2163
       "gi|38638842|emb|AJ609634.1|" => [ # AJ
-        { host: "gi|15791399|ref|NC_002163.1|", score: 18, scaled_score: klass.scale(18, 18, 19, 1, 0) },
-        { host: "gi|77358712|ref|NC_002971.3|", score: 19, scaled_score: klass.scale(19, 18, 19, 1, 0) },
+        { host: "gi|15791399|ref|NC_002163.1|", score: 18, scaled_score: klass.scale(18, 0, 19, 1, 0) },
+        { host: "gi|77358712|ref|NC_002971.3|", score: 19, scaled_score: klass.scale(19, 0, 19, 1, 0) },
       ],
       "gi|73747015|gb|DQ113772.1|" => [ # DQ
-        { host: "gi|15791399|ref|NC_002163.1|", score: 22, scaled_score: klass.scale(22, 18, 22, 1, 0) },
-        { host: "gi|77358712|ref|NC_002971.3|", score: 18, scaled_score: klass.scale(18, 18, 22, 1, 0) },
+        { host: "gi|15791399|ref|NC_002163.1|", score: 22, scaled_score: klass.scale(22, 0, 22, 1, 0) },
+        { host: "gi|77358712|ref|NC_002971.3|", score: 18, scaled_score: klass.scale(18, 0, 22, 1, 0) },
       ],
     }
   end

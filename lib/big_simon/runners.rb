@@ -68,7 +68,7 @@ module BigSimon
           FileUtils.rm outfname
         end
 
-        min = this_virus_scores.min
+        min = 0 # this_virus_scores.min # Technically, this should range from 0 to 15.  Any data missing from this table would give a zero.  TODO we don't actually account for this though.
         max = this_virus_scores.max
         from = 1
         to = 0
