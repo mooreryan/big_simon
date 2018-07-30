@@ -1,11 +1,118 @@
 require "tempfile"
+require "parse_fasta"
 
 module BigSimon
   class Runners
 
+    # @note To match the other things, you'd like them to be key'd on the file name.
+    def self.mummer exe, vir_dir, host_dir, outdir, threads
+      klass = Class.new.extend Rya::CoreExtensions::Math
+      FileUtils.mkdir_p outdir
+
+      mummer_outfname = File.join outdir, "mummer_out.txt"
+
+      virus_fnames = Dir.glob(vir_dir + "/*")
+      host_fnames  = Dir.glob(host_dir + "/*")
+
+      hit_table = {}
+
+      Tempfile.open do |vir_f|
+        Tempfile.open do |host_f|
+          virus_fnames.each do |fname|
+            Rya::AbortIf.assert fname.match(/.fa$/), "bad fname: #{fname}"
+
+            Object::ParseFasta::SeqFile.open(fname).each_record do |rec|
+              # id needs to be the file name
+              new_id = File.basename fname.sub(/.fa$/, "")
+
+              hit_table[new_id] = {}
+
+              vir_f.puts ">#{new_id}\n#{rec.seq}"
+
+              vir_f.puts ">#{new_id}___reverse\n#{rec.seq.reverse}"
+            end
+          end
+
+          host_fnames.each do |fname|
+            Rya::AbortIf.assert fname.match(/.fa$/), "bad fname: #{fname}"
+
+            Object::ParseFasta::SeqFile.open(fname).each_record do |rec|
+              new_id = File.basename fname.sub(/.fa$/, "")
+
+              # Add this host to each virus in the hit_table
+              hit_table.each do |virus, host_table|
+                host_table[new_id] = 0 # set it to defualt score of 0
+              end
+
+              host_f.puts ">#{new_id}\n#{rec.seq}"
+              host_f.puts ">#{new_id}___reverse\n#{rec.seq.reverse}"
+            end
+          end
+
+          vir_f.fsync
+          host_f.fsync
+
+          cmd = "mummer -threads #{threads} -qthreads #{threads} -maxmatch -l 15 #{host_f.path} #{vir_f.path} > #{mummer_outfname}"
+          Process.run_and_time_it! "MUMMER", cmd
+        end
+      end
+
+      virus = nil
+      overall_max_score = 0
+      File.open(mummer_outfname, "rt").each_line.with_index do |line, idx|
+        line.chomp!
+
+        unless line.empty?
+          if line.start_with? ">"
+            virus = line.chomp.sub(/^>/, "").sub(/___reverse$/, "").strip
+
+            # It can be duplicated as there are forward and reverse for each sequence (in case they're contigs.)
+
+            Rya::AbortIf.assert hit_table.has_key?(virus)
+            # unless hit_table.has_key? virus
+            #   hit_table[virus] = {}
+            # end
+          else
+            ary = line.strip.split " "
+
+            host = ary[0].sub(/___reverse$/, "").strip
+            score = ary[3].to_i
+
+            Rya::AbortIf.assert hit_table[virus].has_key?(host)
+
+            # unless hit_table[virus].has_key? host
+            #   hit_table[virus][host] = -1
+            # end
+
+            # We only want the longest hit.
+            hit_table[virus][host] = score if score > hit_table[virus][host]
+
+            # Track the overall max for scaling.
+            overall_max_score = score if score > overall_max_score
+          end
+        end
+      end
+
+      results_table = {}
+
+      min, max, from, to = 0, overall_max_score, 1, 0
+
+      hit_table.each do |virus, host_table|
+        results_table[virus] = []
+
+        host_table.each do |host, score|
+          scaled_score = klass.scale score, min, max, from, to
+
+          results_table[virus] << { host: host, score: score, scaled_score: scaled_score }
+        end
+      end
+
+      results_table
+    end
+
     # This one's a bit different as it parses as well and returns original names.
     # @todo Also do the reverse of each genome in case it's a contig.
-    def self.mummer exe, vir_dir, host_dir, outdir, threads
+    def self.mummer2 exe, vir_dir, host_dir, outdir, threads
       klass = Class.new.extend Rya::CoreExtensions::Math
       FileUtils.mkdir_p outdir
 

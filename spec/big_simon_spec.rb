@@ -55,7 +55,9 @@ RSpec.describe BigSimon do
       ],
     }
   end
-  let(:parsed_output_mummer) do
+
+  # This one is for version2 of the function.
+  let(:parsed_output_mummer2) do
     # Note that this one doesn't have them ordered by anything in particular.
     # These numbers varified by hand
     klass = Class.new.extend Rya::CoreExtensions::Math
@@ -63,16 +65,44 @@ RSpec.describe BigSimon do
     # Scale to the overall max, and 0, the theoretical min.
 
     { # H1 is 2971, H2 is 2163
-      "gi|38638842|emb|AJ609634.1|" => [ # AJ
+      "gi|38638842|emb|AJ609634.1|" => [# AJ
         { host: "gi|15791399|ref|NC_002163.1|", score: 18, scaled_score: klass.scale(18, 0, 22, 1, 0) },
         { host: "gi|77358712|ref|NC_002971.3|", score: 19, scaled_score: klass.scale(19, 0, 22, 1, 0) },
       ],
-      "gi|73747015|gb|DQ113772.1|" => [ # DQ
+      "gi|73747015|gb|DQ113772.1|"  => [# DQ
         { host: "gi|15791399|ref|NC_002163.1|", score: 22, scaled_score: klass.scale(22, 0, 22, 1, 0) },
         { host: "gi|77358712|ref|NC_002971.3|", score: 18, scaled_score: klass.scale(18, 0, 22, 1, 0) },
       ],
     }
   end
+  let(:parsed_output_mummer) do
+    # Note that this one doesn't have them ordered by anything in particular.
+    # These numbers varified by hand
+    klass = Class.new.extend Rya::CoreExtensions::Math
+
+    # Scale to the overall max, and 0, the theoretical min.
+    #
+    # host_3 won't show up in the mummer output file.
+
+    { # H1 is 2971, H2 is 2163
+      "virus_1" => [# AJ
+        { host: "host_1", score: 19, scaled_score: klass.scale(19, 0, 22, 1, 0) }, # virus_1 to host_1 and others
+        { host: "host_2", score: 19, scaled_score: klass.scale(19, 0, 22, 1, 0) }, # this one is from virus_1_reverse to host_2
+        { host: "host_3", score: 0, scaled_score: 1.0 },
+      ],
+      "virus_2" => [# DQ
+        { host: "host_1", score: 18, scaled_score: klass.scale(18, 0, 22, 1, 0) },
+        { host: "host_2", score: 22, scaled_score: klass.scale(22, 0, 22, 1, 0) },
+        { host: "host_3", score: 0, scaled_score: 1.0 },
+      ],
+      "virus_3" => [ # A fake one with no hosts and also not even in the mummer output
+        { host: "host_1", score: 0, scaled_score: 1.0 },
+        { host: "host_2", score: 0, scaled_score: 1.0 },
+        { host: "host_3", score: 0, scaled_score: 1.0 },
+      ]
+    }
+  end
+
 
   let(:collated_host_table) do
     {
@@ -246,18 +276,37 @@ RSpec.describe BigSimon do
     let(:host_dir) { File.join BigSimon::TEST_FILES, "host" }
     let(:threads) { 3 }
 
+    # describe "::mummer2" do
+    #   let(:program_name) { SpecConst::PROGRAM_3 }
+    #
+    #   it "calculates matches" do
+    #     actual_results = nil
+    #     expect {
+    #       actual_results = BigSimon::Runners.mummer exe, vir_dir, host_dir, outdir, threads
+    #     }.not_to raise_error
+    #
+    #     expect(actual_results).to eq parsed_output_mummer2
+    #   end
+    # end
+
     describe "::mummer" do
       let(:program_name) { SpecConst::PROGRAM_3 }
+
+      vdir = File.join BigSimon::TEST_FILES, "mummer_files", "virus"
+      hdir = File.join BigSimon::TEST_FILES, "mummer_files", "host"
+      odir = File.join BigSimon::TEST_FILES, "mummer_files", "output"
+
 
       it "calculates matches" do
         actual_results = nil
         expect {
-          actual_results = BigSimon::Runners.mummer exe, vir_dir, host_dir, outdir, threads
+          actual_results = BigSimon::Runners.mummer exe, vdir, hdir, odir, threads
         }.not_to raise_error
 
         expect(actual_results).to eq parsed_output_mummer
       end
     end
+
 
     describe "::wish" do
       let(:program_name) { SpecConst::PROGRAM_2 }
@@ -304,7 +353,7 @@ RSpec.describe BigSimon do
 
     describe "::heatmaps" do
       it "makes heatmaps" do
-        indir = File.join BigSimon::TEST_FILES, "outdir_for_heatmaps"
+        indir  = File.join BigSimon::TEST_FILES, "outdir_for_heatmaps"
         outdir = File.join indir, "outdir"
 
         FileUtils.rm_r outdir if Dir.exist? outdir
@@ -316,7 +365,7 @@ RSpec.describe BigSimon do
 
         expected_outfiles = []
         Dir.glob("#{indir}/*.txt").each do |infile|
-          ext = File.extname infile
+          ext  = File.extname infile
           base = File.basename infile, ext
 
           outfile = File.join outdir, "#{base}.heatmap.pdf"

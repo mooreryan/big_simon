@@ -3,10 +3,15 @@ Signal.trap("PIPE", "EXIT")
 
 require "pp"
 
+require "big_simon"
+
+Rya::AbortIf.abort_unless ARGV.count >= 1, "usage: TOP=number consensus_predictions scores_scaled.*.txt > consensus_predictions.txt"
+
 by_program = {}
 lines = []
 
-TOP = (ENV["TOP"] || 5).to_i
+TOP = (ENV["TOP"] || 3).to_i
+AT_LEAST = (ENV["AT_LEAST"] || 2).to_i
 
 ARGV.each do |fname|
   scores = {}
@@ -78,16 +83,18 @@ by_program.each do |virus, program_tables|
   end
 end
 
-first_table.each do |virus, host_counts|
-  host_counts.sort_by { |_, programs| programs.count }.reverse.each do |host, programs|
-    STDERR.puts [virus, :best, host, programs.count, programs].join "\t"
-  end
-  STDERR.puts
-end
+# first_table.each do |virus, host_counts|
+#   host_counts.sort_by { |_, programs| programs.count }.reverse.each do |host, programs|
+#     STDERR.puts [virus, :best, host, programs.count, programs].join "\t"
+#   end
+#   STDERR.puts
+# end
 
 top_host_table.each do |virus, host_counts|
+  puts "\n\n>Virus-------#{virus}"
   host_counts.sort_by { |_, programs| programs.count }.reverse.each do |host, programs|
+    if programs.count >= AT_LEAST
       puts [virus, :top_N, host, programs.count, programs].join "\t"
+    end
   end
-  puts
 end
