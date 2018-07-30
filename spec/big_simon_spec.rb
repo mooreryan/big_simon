@@ -102,6 +102,28 @@ RSpec.describe BigSimon do
       ]
     }
   end
+  let(:parsed_output_homology) do
+    klass = Class.new.extend Rya::CoreExtensions::Math
+    min, max, from, to = 0, 234.0, 1, 0
+
+    {
+      "virus_1" => [# AJ
+        { host: "host_1", score: 0, scaled_score: klass.scale(0, min, max, from, to) },
+        { host: "host_2", score: 234.0, scaled_score: klass.scale(234.0, min, max, from, to) },
+        { host: "host_3", score: 0, scaled_score: 1.0 },
+      ],
+      "virus_2" => [# DQ
+        { host: "host_1", score: 39.9, scaled_score: klass.scale(39.9, min, max, from, to) },
+        { host: "host_2", score: 201.4, scaled_score: klass.scale(201.4, min, max, from, to) },
+        { host: "host_3", score: 0, scaled_score: 1.0 },
+      ],
+      "virus_3" => [ # A fake one with no hosts and also not even in the mummer output
+        { host: "host_1", score: 0, scaled_score: 1.0 },
+        { host: "host_2", score: 0, scaled_score: 1.0 },
+        { host: "host_3", score: 0, scaled_score: 1.0 },
+      ]
+    }
+  end
 
 
   let(:collated_host_table) do
@@ -288,6 +310,27 @@ RSpec.describe BigSimon do
     #     expect(actual_results).to eq parsed_output_mummer2
     #   end
     # end
+
+    describe "::homology" do
+      # Need this for some of the output variables.
+      let(:program_name) { "homology_seach" }
+
+      vdir = File.join BigSimon::TEST_FILES, "homology_files", "virus"
+      hdir = File.join BigSimon::TEST_FILES, "homology_files", "host"
+      odir = File.join BigSimon::TEST_FILES, "homology_files", "output"
+
+
+      it "runs the homology pipeline" do
+        actual_output = nil
+        expected_output = parsed_output_homology
+
+        expect {
+          actual_output = BigSimon::Runners.homology vdir, hdir, odir, threads
+        }.not_to raise_error
+
+        expect(actual_output).to eq expected_output
+      end
+    end
 
     describe "::mummer" do
       let(:program_name) { SpecConst::PROGRAM_3 }

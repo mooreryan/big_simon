@@ -31,3 +31,7 @@ spec/test_files/outdir_for_heatmaps/outdir/
 stats.tmp.r
 
 scratch
+
+
+
+spec/test_files/homology_files/output/*homology*

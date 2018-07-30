@@ -20,8 +20,14 @@ module BigSimon
   BIN        = File.join ROOT, "vendor", "bin", "mac"
   SPEC       = File.join ROOT, "spec"
   TEST_FILES = File.join SPEC, "test_files"
+
+  # Programs
   WISH       = File.join BIN, "WIsH"
   VHM        = File.join BIN, "vhm.py"
   MUMMER     = File.join BIN, "mummer"
   RSCRIPT = "Rscript"
+
+  BLASTN = File.join BIN, "blastn"
+  MAKEBLASTDB = File.join BIN, "makeblastdb"
+  PRODIGAL = File.join BIN, "prodigal"
 end
