@@ -65,71 +65,30 @@ module BigSimon
     def self.heatmaps exe, indir, outdir
       FileUtils.mkdir_p outdir
 
-      outfiles = []
-
-      Dir.glob("#{indir}/scores*.txt").each do |fname|
-        extname = File.extname fname
-        basename = File.basename fname, extname
+      fnames = Dir.glob("#{indir}/scores*.txt").map do |in_fname|
+        extname  = File.extname in_fname
+        basename = File.basename in_fname, extname
 
         out_fname = File.join outdir, "#{basename}.heatmap.pdf"
-        outfiles << out_fname
 
-        rcode_str = rcode fname, out_fname
-
-        Tempfile.open do |f|
-          f.puts rcode_str
-          f.fsync # ensure no data is buffered
-
-
-          cmd = "#{exe} #{f.path}"
-          Process.run_and_time_it! "Drawing heatmaps", cmd
-        end
+        [in_fname, out_fname]
       end
 
-      outfiles
+
+      rcode_str = BigSimon::Utils.rcode fnames
+
+      Tempfile.open do |f|
+        f.puts rcode_str
+        f.fsync # ensure no data is buffered
+
+
+        cmd = "#{exe} #{f.path}"
+        Process.run_and_time_it! "Drawing heatmaps", cmd
+      end
+
+      out_fnames = fnames.map(&:last)
     end
   end
 end
 
-def rcode infname, out_fname
-  %Q{
-library(reshape2)
-library(gplots)
-library(RColorBrewer)
-
-file.join <- function(...) {
-    paste(..., sep="/")
-}
-
-dat <- read.table("#{infname}", header=T, sep="\t")
-
-wide.dat <- dcast(dat, host ~ virus, value.var="score")
-
-hosts <- wide.dat[, 1]
-scores <- wide.dat[, 2:ncol(wide.dat)]
-scores.numeric <- apply(scores, 2, as.numeric)
-
-scores.matrix <- as.matrix(scores.numeric)
-
-rownames(scores.matrix) <- hosts
-
-palette <- "YlOrBr"
-col <- colorRampPalette(brewer.pal(n=9, palette))(n = 25)
-size <- 0.75
-
-pdf("#{out_fname}", height=5, width=8)
-
-heatmap.2(scores.matrix,
-          trace="none", ## Disable those wonky lines.
-          col=col, ## Set the color.
-
-          ## Size opts
-          margins=c(11, 11), cexRow=size, cexCol=size,
-
-          ## Key labeling
-          key.xlab="Mean score (lower is better)")
-
-invisible(dev.off())
-}
-end
 

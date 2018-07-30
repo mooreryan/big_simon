@@ -290,8 +290,6 @@ RSpec.describe BigSimon do
           outfile = File.join outdir, "#{base}.heatmap.pdf"
           expected_outfiles << outfile
 
-          puts outfile
-
           expect(File).to exist outfile
         end
 
