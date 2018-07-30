@@ -1,5 +1,85 @@
+require "tempfile"
+
 module BigSimon
   class Runners
+
+    # This one's a bit different as it parses as well and returns original names.
+    # @todo Also do the reverse of each genome in case it's a contig.
+    def self.mummer exe, vir_dir, host_dir, outdir, threads
+      klass = Class.new.extend Rya::CoreExtensions::Math
+      FileUtils.mkdir_p outdir
+
+      # TODO put these all in one file then do it?
+
+      results = {}
+
+      # Takes names in files and puts them to the file names
+      name_map = {}
+
+      Dir.glob(vir_dir + "/*").each do |vir_fname|
+        this_virus_scores = []
+        virus = nil
+
+        Dir.glob(host_dir + "/*").each do |host_fname|
+          vir_base = File.basename vir_fname
+          host_base = File.basename host_fname
+          outfname = File.join outdir, "#{vir_base}___#{host_base}.mummer"
+
+          # -l is min length of a match TODO pull this into a const
+          # -F to force 4 columns
+          cmd = "#{exe} -F " \
+                "-maxmatch " \
+                "-l 15 " \
+                "#{host_fname} " \
+                "#{vir_fname} " \
+                "> #{outfname}"
+
+          Process.run_and_time_it! "Calculating matches", cmd
+
+          # Note there should only be one '>' per file here.
+          host = nil
+          score = 0
+          File.open(outfname, "rt").each_line.with_index do |line, idx|
+            if idx.zero?
+              this_virus = line.chomp.sub(/^>/, "").sub(/___reverse$/, "").strip
+
+              Rya::AbortIf::abort_unless(this_virus == virus, "OOPS") if virus
+
+              virus ||= this_virus
+            else
+              ary = line.chomp.strip.split(" ")
+              Rya::AbortIf.abort_unless ary.count == 4, "Problem parsing #{outfname} (mummer output)"
+
+              host = ary[0].sub(/___reverse$/, "").strip
+              len = ary[3].to_i
+
+              score = len if len > score
+            end
+          end
+
+          this_virus_scores << score
+
+          unless results.has_key? virus
+            results[virus] = []
+          end
+
+          results[virus] << { host: host, score: score, scaled_score: nil }
+
+          FileUtils.rm outfname
+        end
+
+        min = this_virus_scores.min
+        max = this_virus_scores.max
+        from = 1
+        to = 0
+
+        results[virus].each do |host_table|
+          host_table[:scaled_score] = klass.scale host_table[:score], min, max, from, to
+        end
+      end
+
+      results
+    end
 
     def self.vir_host_matcher exe, vir_dir, host_dir, outdir
       FileUtils.mkdir_p outdir
@@ -77,7 +157,7 @@ module BigSimon
 
       rcode_str = BigSimon::Utils.rcode fnames
 
-      Tempfile.open do |f|
+      Object::Tempfile.open do |f|
         f.puts rcode_str
         f.fsync # ensure no data is buffered
 

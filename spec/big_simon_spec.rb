@@ -13,6 +13,7 @@ module SpecConst
 
   PROGRAM_1 = "VirHostMatcher"
   PROGRAM_2 = "WIsH"
+  PROGRAM_3 = "mummer"
 end
 
 RSpec.describe BigSimon do
@@ -51,6 +52,22 @@ RSpec.describe BigSimon do
       SpecConst::VIRUS_2 => [
         { host: SpecConst::HOST_2, score: b1, scaled_score: b1_scaled },
         { host: SpecConst::HOST_1, score: b2, scaled_score: b2_scaled },
+      ],
+    }
+  end
+  let(:parsed_output_mummer) do
+    # Note that this one doesn't have them ordered by anything in particular.
+    # These numbers varified by hand
+    klass = Class.new.extend Rya::CoreExtensions::Math
+
+    { # H1 is 2971, H2 is 2163
+      "gi|38638842|emb|AJ609634.1|" => [ # AJ
+        { host: "gi|15791399|ref|NC_002163.1|", score: 18, scaled_score: klass.scale(18, 18, 19, 1, 0) },
+        { host: "gi|77358712|ref|NC_002971.3|", score: 19, scaled_score: klass.scale(19, 18, 19, 1, 0) },
+      ],
+      "gi|73747015|gb|DQ113772.1|" => [ # DQ
+        { host: "gi|15791399|ref|NC_002163.1|", score: 22, scaled_score: klass.scale(22, 18, 22, 1, 0) },
+        { host: "gi|77358712|ref|NC_002971.3|", score: 18, scaled_score: klass.scale(18, 18, 22, 1, 0) },
       ],
     }
   end
@@ -226,6 +243,19 @@ RSpec.describe BigSimon do
     let(:vir_dir) { File.join BigSimon::TEST_FILES, "virus" }
     let(:host_dir) { File.join BigSimon::TEST_FILES, "host" }
     let(:threads) { 3 }
+
+    describe "::mummer" do
+      let(:program_name) { SpecConst::PROGRAM_3 }
+
+      it "calculates matches" do
+        actual_results = nil
+        expect {
+          actual_results = BigSimon::Runners.mummer exe, vir_dir, host_dir, outdir, threads
+        }.not_to raise_error
+
+        expect(actual_results).to eq parsed_output_mummer
+      end
+    end
 
     describe "::wish" do
       let(:program_name) { SpecConst::PROGRAM_2 }
