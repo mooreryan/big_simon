@@ -183,9 +183,9 @@ host_info_vhm  = BigSimon::Parsers.vir_host_matcher vhm_outf
 host_info_simple_names = BigSimon::Pipeline.collate_host_results [host_info_wish, host_info_vhm, host_info_mummer_simple_names], programs
 host_info              = BigSimon::Pipeline.map_taxa host_info_simple_names, name_map_virus, name_map_host
 
-puts
-pp host_info
-puts
+# puts
+# pp host_info
+# puts
 
 # Just a basic all info file
 # File.open all_predictions_fname, "w" do |f|
