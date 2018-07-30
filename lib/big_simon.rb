@@ -22,4 +22,6 @@ module BigSimon
   TEST_FILES = File.join SPEC, "test_files"
   WISH       = File.join BIN, "WIsH"
   VHM        = File.join BIN, "vhm.py"
+  MUMMER     = File.join BIN, "mummer"
+  RSCRIPT = "Rscript"
 end

@@ -2,6 +2,7 @@
 Signal.trap("PIPE", "EXIT")
 
 require "pp"
+require "tempfile"
 
 require "parse_fasta"
 require "trollop"
@@ -9,6 +10,8 @@ require "trollop"
 require "big_simon"
 
 # TODO make scaled scores with high score being better.
+
+Process.extend Rya::CoreExtensions::Process
 
 opts = Trollop.options do
   version BigSimon::VERSION_BANNER
@@ -46,6 +49,7 @@ Rya::AbortIf.abort_unless opts[:threads] > 0,
 programs = [
   "WIsH",
   "VirHostMatcher",
+  "mummer"
 ]
 
 outdir       = opts[:outdir]
@@ -61,6 +65,71 @@ tmpdir_host  = File.join tmpdir, "host"
 
 # all_predictions_fname = File.join outdir, "scores_all.txt"
 mean_scaled_scores_fname = File.join outdir, "scores_scaled.mean.txt"
+
+virus_recs, host_recs = [], []
+
+# Tempfile.open do |vir_f|
+#   Tempfile.open do |host_f|
+#     virus_fnames.each do |fname|
+#       ParseFasta::SeqFile.open(fname).each_record do |rec|
+#         vir_f.puts rec
+#
+#         vir_f.puts ">#{rec.id}___reverse\n#{rec.seq.reverse}"
+#       end
+#     end
+#
+#     host_fnames.each do |fname|
+#       ParseFasta::SeqFile.open(fname).each_record do |rec|
+#         host_f.puts rec
+#         host_f.puts ">#{rec.id}___reverse\n#{rec.seq.reverse}"
+#       end
+#     end
+#
+#     vir_f.fsync
+#     host_f.fsync
+#
+#     cmd = "mummer -maxmatch -l 15 #{host_f.path} #{vir_f.path} > /Users/moorer/Desktop/mummer.OUT"
+#     Process.run_and_time_it! "MUMMER", cmd
+#   end
+# end
+#
+# header   = nil
+# hits     = []
+# hit_info = {}
+# virus = nil
+#
+# File.open("/Users/moorer/Desktop/mummer.OUT", "rt").each_line.with_index do |line, idx|
+#   if line.start_with? '>'
+#     virus = line.chomp.sub(/^>/, "").sub(/___reverse$/, "").strip
+#
+#     unless hit_info.has_key? virus
+#       hit_info[virus] = {}
+#     end
+#   else
+#     host, _, _, len = line.chomp.strip.split(" ")
+#     host = host.sub(/___reverse$/, "").strip
+#
+#     unless hit_info[virus].has_key? host
+#       hit_info[virus][host] = -1
+#     end
+#
+#     hit_info[virus][host] = len.to_i if len.to_i > hit_info[virus][host]
+#   end
+# end
+#
+# puts
+#
+# hh = hit_info.map do |virus, info|
+#   [virus, info.to_a.sort_by {|gen, len| len}.reverse]
+# end
+#
+# pp hh
+
+# hh = hit_info.map do |virus, info|
+#   [virus, info.to_a.sort_by { |host, hit_len| hit_len }.reverse
+#
+# end
+# p hit_info
 
 scores_files = {}
 programs.each do |program|
@@ -85,10 +154,33 @@ name_map_host, all_ids_host   = BigSimon::Utils.set_up_tmp_dirs host_fnames, tmp
 wish_outf = BigSimon::Runners.wish BigSimon::WISH, tmpdir_virus, tmpdir_host, tmpdir, threads
 vhm_outf  = BigSimon::Runners.vir_host_matcher BigSimon::VHM, tmpdir_virus, tmpdir_host, tmpdir
 
+host_info_mummer = BigSimon::Runners.mummer BigSimon::MUMMER, tmpdir_virus, tmpdir_host, tmpdir, threads
+
+# Map them back to simple names.  TODO just have it spit these out from the beginning.
+host_info_mummer_simple_names = {}
+inverted_name_map_virus = name_map_virus.invert
+inverted_name_map_host = name_map_host.invert
+
+host_info_mummer.each do |virus, host_tables|
+  virname = virus
+  if inverted_name_map_virus.has_key? virus
+    virname = inverted_name_map_virus[virus]
+  end
+
+  host_info_mummer_simple_names[virname] = []
+
+  host_tables.map do |table|
+    hostname = inverted_name_map_host.has_key?(table[:host]) ? inverted_name_map_host[table[:host]] : table[:host]
+    new_table = { host: hostname, score: table[:score], scaled_score: table[:scaled_score] }
+
+    host_info_mummer_simple_names[virname] << new_table
+  end
+end
+
 host_info_wish = BigSimon::Parsers.wish wish_outf
 host_info_vhm  = BigSimon::Parsers.vir_host_matcher vhm_outf
 
-host_info_simple_names = BigSimon::Pipeline.collate_host_results [host_info_wish, host_info_vhm], programs
+host_info_simple_names = BigSimon::Pipeline.collate_host_results [host_info_wish, host_info_vhm, host_info_mummer_simple_names], programs
 host_info              = BigSimon::Pipeline.map_taxa host_info_simple_names, name_map_virus, name_map_host
 
 puts
@@ -142,3 +234,6 @@ scores_files.each do |program, file|
   file.values.map(&:close)
 end
 FileUtils.rm_r tmpdir
+
+# Make the heatmaps
+BigSimon::Runners.heatmaps BigSimon::RSCRIPT, outdir, File.join(outdir, "heatmaps")

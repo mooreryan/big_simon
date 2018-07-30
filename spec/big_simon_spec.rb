@@ -309,7 +309,7 @@ RSpec.describe BigSimon do
 
         actual_outfiles = nil
         expect {
-          actual_outfiles = BigSimon::Runners.heatmaps "Rscript", indir, outdir
+          actual_outfiles = BigSimon::Runners.heatmaps BigSimon::RSCRIPT, indir, outdir
         }.not_to raise_error
 
         expected_outfiles = []
