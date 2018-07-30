@@ -1,5 +1,4 @@
 require "tempfile"
-require "parallel"
 
 module BigSimon
   class Runners
@@ -18,19 +17,13 @@ module BigSimon
       name_map = {}
 
       Dir.glob(vir_dir + "/*").each do |vir_fname|
-        host_fnames = Dir.glob(host_dir + "/*")
+        this_virus_scores = []
+        virus = nil
 
-        return_value = Parallel.map(host_fnames, in_processes: threads) do |host_fname|
-
-          # end
-
-          # Dir.glob(host_dir + "/*").each do |host_fname|
-
-          vir_base  = File.basename vir_fname
+        Dir.glob(host_dir + "/*").each do |host_fname|
+          vir_base = File.basename vir_fname
           host_base = File.basename host_fname
-          outfname  = File.join outdir, "#{vir_base}___#{host_base}.mummer"
-
-          virus = nil
+          outfname = File.join outdir, "#{vir_base}___#{host_base}.mummer"
 
           # -l is min length of a match TODO pull this into a const
           # -F to force 4 columns
@@ -44,7 +37,7 @@ module BigSimon
           Process.run_and_time_it! "Calculating matches", cmd
 
           # Note there should only be one '>' per file here.
-          host  = nil
+          host = nil
           score = 0
           File.open(outfname, "rt").each_line.with_index do |line, idx|
             if idx.zero?
@@ -57,40 +50,32 @@ module BigSimon
               ary = line.chomp.strip.split(" ")
               Rya::AbortIf.abort_unless ary.count == 4, "Problem parsing #{outfname} (mummer output)"
 
-              host  = ary[0].sub(/___reverse$/, "").strip
-              len   = ary[3].to_i
+              host = ary[0].sub(/___reverse$/, "").strip
+              len = ary[3].to_i
 
               score = len if len > score
             end
           end
 
-          # unless results.has_key? virus
-          #   results[virus] = []
-          # end
-          #
-          # results[virus] << { host: host, score: score, scaled_score: nil }
+          this_virus_scores << score
+
+          unless results.has_key? virus
+            results[virus] = []
+          end
+
+          results[virus] << { host: host, score: score, scaled_score: nil }
 
           FileUtils.rm outfname
-
-          host_table = { host: host, score: score, scaled_score: nil }
-
-          [virus, host_table]
         end
 
-        virus = return_value.first.first
-        host_tables = return_value.map(&:last)
+        min = this_virus_scores.min
+        max = this_virus_scores.max
+        from = 1
+        to = 0
 
-        all_scores = host_tables.map { |table| table[:score] }
-        min        = all_scores.min
-        max        = all_scores.max
-        from       = 1
-        to         = 0
-
-        host_tables.each do |host_table|
+        results[virus].each do |host_table|
           host_table[:scaled_score] = klass.scale host_table[:score], min, max, from, to
         end
-
-        results[virus] = host_tables
       end
 
       results
