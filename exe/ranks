@@ -1,0 +1,93 @@
+#!/usr/bin/env ruby
+Signal.trap("PIPE", "EXIT")
+
+require "pp"
+
+by_program = {}
+lines = []
+
+TOP = (ENV["TOP"] || 5).to_i
+
+ARGV.each do |fname|
+  scores = {}
+  File.open(fname, "rt").each_line.with_index do |line, idx|
+    unless idx.zero?
+      virus, host, score = line.chomp.split "\t"
+
+      unless scores.has_key? virus
+        scores[virus] = []
+      end
+
+      scores[virus] << [host, score.to_f]
+    end
+  end
+
+  scores.sort_by { |virus, _| virus }.each do |virus, host_scores|
+    # Lowest score is the best
+    top_5 = host_scores.sort_by { |host, score| score }.take(TOP).map(&:first)
+
+    line = [File.basename(fname), virus, top_5]
+    lines << line
+
+    # puts line.join "\t"
+  end
+  # puts
+end
+
+lines.each do |line|
+  program, virus, all = line
+  first = all.first
+
+  unless by_program.has_key? virus
+    by_program[virus] = {}
+  end
+
+  unless program == "scores_scaled.mean.txt"
+    by_program[virus][program] = { first: first, all: all }
+  end
+end
+
+# These track the number of times a host shows up in the first spot and in the top N spots for that virus for all programs.
+first_table = {}
+top_host_table = {}
+
+by_program.each do |virus, program_tables|
+  first_table[virus] = {}
+  top_host_table[virus] = {}
+
+  program_tables.each do |program, top_info|
+
+
+    first_host = top_info[:first]
+    all_top = top_info[:all]
+
+    unless first_table[virus].has_key? first_host
+      first_table[virus][first_host] = []
+    end
+
+
+    first_table[virus][first_host] << program
+
+    all_top.each do |top_host|
+      unless top_host_table[virus].has_key? top_host
+        top_host_table[virus][top_host] = []
+      end
+
+      top_host_table[virus][top_host] << program
+    end
+  end
+end
+
+first_table.each do |virus, host_counts|
+  host_counts.sort_by { |_, programs| programs.count }.reverse.each do |host, programs|
+    STDERR.puts [virus, :best, host, programs.count, programs].join "\t"
+  end
+  STDERR.puts
+end
+
+top_host_table.each do |virus, host_counts|
+  host_counts.sort_by { |_, programs| programs.count }.reverse.each do |host, programs|
+      puts [virus, :top_N, host, programs.count, programs].join "\t"
+  end
+  puts
+end

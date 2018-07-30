@@ -29,3 +29,5 @@ toyexample_out/
 spec/test_files/outdir_for_heatmaps/outdir/
 
 stats.tmp.r
+
+scratch
