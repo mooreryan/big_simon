@@ -18,12 +18,12 @@ module BigSimon
 
       Dir.glob(vir_dir + "/*").each do |vir_fname|
         this_virus_scores = []
-        virus = nil
+        virus             = nil
 
         Dir.glob(host_dir + "/*").each do |host_fname|
-          vir_base = File.basename vir_fname
+          vir_base  = File.basename vir_fname
           host_base = File.basename host_fname
-          outfname = File.join outdir, "#{vir_base}___#{host_base}.mummer"
+          outfname  = File.join outdir, "#{vir_base}___#{host_base}.mummer"
 
           # -l is min length of a match TODO pull this into a const
           # -F to force 4 columns
@@ -37,7 +37,7 @@ module BigSimon
           Process.run_and_time_it! "Calculating matches", cmd
 
           # Note there should only be one '>' per file here.
-          host = nil
+          host  = nil
           score = 0
           File.open(outfname, "rt").each_line.with_index do |line, idx|
             if idx.zero?
@@ -50,8 +50,8 @@ module BigSimon
               ary = line.chomp.strip.split(" ")
               Rya::AbortIf.abort_unless ary.count == 4, "Problem parsing #{outfname} (mummer output)"
 
-              host = ary[0].sub(/___reverse$/, "").strip
-              len = ary[3].to_i
+              host  = ary[0].sub(/___reverse$/, "").strip
+              len   = ary[3].to_i
 
               score = len if len > score
             end
@@ -68,13 +68,28 @@ module BigSimon
           FileUtils.rm outfname
         end
 
-        min = 0 # this_virus_scores.min # Technically, this should range from 0 to 15.  Any data missing from this table would give a zero.  TODO we don't actually account for this though.
-        max = this_virus_scores.max
-        from = 1
-        to = 0
+        # This was the original scaling, i.e. per virus
+        # min = 0 # this_virus_scores.min # Technically, this should range from 0 to 15.  Any data missing from this table would give a zero.  TODO we don't actually account for this though.
+        # max = this_virus_scores.max
+        # from = 1
+        # to = 0
+        #
+        # results[virus].each do |host_table|
+        #   host_table[:scaled_score] = klass.scale host_table[:score], min, max, from, to
+        # end
+      end
 
-        results[virus].each do |host_table|
-          host_table[:scaled_score] = klass.scale host_table[:score], min, max, from, to
+      all_scores = []
+      results.each do |virus, host_tables|
+        all_scores << host_tables.map { |table| table[:score] }
+      end
+
+      all_scores.flatten!
+      max = all_scores.max
+
+      results.each do |virus, host_tables|
+        host_tables.each do |host_table|
+          host_table[:scaled_score] = klass.scale host_table[:score], 0, max, 1, 0
         end
       end
 

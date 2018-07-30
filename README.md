@@ -1,6 +1,8 @@
 # BigSimon
 
-A pipeline for finding hosts of viruses!
+Hi, I'm BigSimon (but you can call me BigSi if you want), and I'm a pipeline for finding hosts of viruses!
+
+Mainly, I'm just a wrapper for some other nice tools.
 
 ## Installation
 
@@ -20,7 +22,11 @@ Or install it yourself as:
 
 ## Usage
 
-TODO
+For now, there is not much documentation.  To see the help file, run:
+
+```
+$ big_simon --help
+```
 
 ## Development
 
