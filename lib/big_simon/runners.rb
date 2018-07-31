@@ -88,7 +88,7 @@ module BigSimon
 
             combined_seq_length = all_seq_lengths[virus] + all_seq_lengths[host]
 
-            score = ary[3].to_i / combined_seq_length * 1000
+            score = ary[3].to_i / combined_seq_length.to_f * 1000
 
 
             # unless hit_table[virus].has_key? host

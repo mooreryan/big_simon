@@ -82,43 +82,19 @@ wish_outf = BigSimon::Runners.wish BigSimon::WISH, tmpdir_virus, tmpdir_host, tm
 vhm_outf  = BigSimon::Runners.vir_host_matcher BigSimon::VHM, tmpdir_virus, tmpdir_host, tmpdir
 
 # TODO separate the parser from the runner for mummer.
-host_info_mummer = BigSimon::Runners.mummer BigSimon::MUMMER, tmpdir_virus, tmpdir_host, tmpdir, threads
-
-puts "mummer"
-pp host_info_mummer
-puts
+host_info_mummer = BigSimon::Runners.mummer BigSimon::MUMMER, tmpdir_virus, tmpdir_host, tmpdir, threads, all_seq_lengths
 
 # TODO separate the parser from the runner for homology
-host_info_homology = BigSimon::Runners.homology tmpdir_virus, tmpdir_host, tmpdir, threads
-
-puts "homology"
-pp host_info_homology
-puts
-
+host_info_homology = BigSimon::Runners.homology tmpdir_virus, tmpdir_host, tmpdir, threads, all_seq_lengths
 
 
 host_info_wish = BigSimon::Parsers.wish wish_outf
 host_info_vhm  = BigSimon::Parsers.vir_host_matcher vhm_outf
 
-puts "wish"
-pp host_info_wish
-puts
-
-puts "vhm"
-pp host_info_vhm
-puts
-
 
 host_info_simple_names = BigSimon::Pipeline.collate_host_results [host_info_wish, host_info_vhm, host_info_mummer, host_info_homology], programs
 host_info              = BigSimon::Pipeline.map_taxa host_info_simple_names, name_map_virus, name_map_host
 
-puts
-pp host_info_simple_names
-puts
-
-puts
-pp host_info
-puts
 
 # Just a basic all info file
 # File.open all_predictions_fname, "w" do |f|
@@ -137,8 +113,6 @@ end
 
 scores_files.each do |program, files|
   files.each do |name, file|
-    puts "LALA 3: #{[program, name, file]} #{%w[virus host score].join}"
-
     file.puts %w[virus host score].join "\t"
   end
 end
@@ -150,17 +124,12 @@ host_info.each do |virus, h1|
     h2[:scores].each do |program, score|
       lines[[virus, host, program]] = [score]
 
-      puts "LALA: #{[virus, host, score]}"
-
       scores_files[program][:raw].puts [virus, host, score].join "\t"
     end
 
     # Add in the scaled score too.
     h2[:scaled_scores].each do |program, score|
       lines[[virus, host, program]] << score
-
-      puts "LALA 2: #{[virus, host, score]}"
-
 
       scores_files[program][:scaled].puts [virus, host, score].join "\t"
     end
