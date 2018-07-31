@@ -70,6 +70,7 @@ draw.heatmap("#{in_fname}", "#{out_fname}")
       1 - Math.exp(ll)
     end
 
+    # @note I also rename all the sequences in the tmp fasta files with the new ID.
     def self.set_up_tmp_dirs fastas, tmpdir, which
       Object::FileUtils.mkdir_p tmpdir
 
@@ -92,7 +93,7 @@ draw.heatmap("#{in_fname}", "#{out_fname}")
             outfname = File.join tmpdir, "#{new_id}.fa"
 
             File.open(outfname, "w") do |f|
-              f.puts rec
+              f.puts ">#{new_id}\n#{rec.seq}" # TODO HERE
             end
           end
         end

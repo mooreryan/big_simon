@@ -241,8 +241,8 @@ module BigSimon
         blast_results = File.join outdir, File.basename(vir_genome_fname) + ".blast_results.homology"
 
         # this will be used as a viral ID.
-        vir_simple_fname = File.basename vir_genome_fname, ".fa"
-        blast_table = {}
+        vir_simple_fname              = File.basename vir_genome_fname, ".fa"
+        blast_table                   = {}
         blast_table[vir_simple_fname] = Hash.new 0
 
         # Call ORFs on the virus.
@@ -295,7 +295,7 @@ module BigSimon
       max_score = -1
       blast_info.each do |_, blast_table|
         blast_table.each do |vir_id, host_scores|
-          this_max = host_scores.values.max || -1 # sometimes there are no hits at all
+          this_max  = host_scores.values.max || -1 # sometimes there are no hits at all
 
           max_score = this_max if this_max > max_score
         end
@@ -392,13 +392,13 @@ module BigSimon
 
         out_fname = File.join outdir, "#{basename}.heatmap.pdf"
 
-        [in_fname, out_fname]
+        [File.absolute_path(in_fname), File.absolute_path(out_fname)]
       end
 
 
       rcode_str = BigSimon::Utils.rcode fnames
 
-      Object::Tempfile.open do |f|
+      Object::File.open(File.join(outdir, "RCODE.r"), "w") do |f|
         f.puts rcode_str
         f.fsync # ensure no data is buffered
 
