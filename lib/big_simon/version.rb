@@ -1,5 +1,5 @@
 module BigSimon
-  VERSION = "0.2.0"
+  VERSION = "0.2.1"
 
   COPYRIGHT = "2018 Ryan Moore"
   CONTACT   = "moorer@udel.edu"

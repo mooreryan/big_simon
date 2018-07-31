@@ -56,7 +56,7 @@ module BigSimon
           # -k 3 index every third position in reference (broken now, bug in mummer)
           # -n -k 3 -threads 3
           # -n match only A C T G
-          cmd = "mummer -n -k 3 -threads #{threads} -qthreads #{threads} -maxmatch -l 15 #{host_f.path} #{vir_f.path} > #{mummer_outfname}"
+          cmd = "mummer -n -threads #{threads} -qthreads #{threads} -maxmatch -l 15 #{host_f.path} #{vir_f.path} > #{mummer_outfname}"
           Process.run_and_time_it! "MUMMER", cmd
         end
       end

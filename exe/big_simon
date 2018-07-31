@@ -54,7 +54,8 @@ Rya::AbortIf.abort_unless opts[:threads] > 0,
 programs = [
   "WIsH",
   "VirHostMatcher",
-  "mummer"
+  "mummer",
+  "homology",
 ]
 
 outdir       = opts[:outdir]
@@ -70,71 +71,6 @@ tmpdir_host  = File.join tmpdir, "host"
 
 # all_predictions_fname = File.join outdir, "scores_all.txt"
 mean_scaled_scores_fname = File.join outdir, "scores_scaled.mean.txt"
-
-# virus_recs, host_recs = [], []
-
-# Tempfile.open do |vir_f|
-#   Tempfile.open do |host_f|
-#     virus_fnames.each do |fname|
-#       ParseFasta::SeqFile.open(fname).each_record do |rec|
-#         vir_f.puts rec
-#
-#         vir_f.puts ">#{rec.id}___reverse\n#{rec.seq.reverse}"
-#       end
-#     end
-#
-#     host_fnames.each do |fname|
-#       ParseFasta::SeqFile.open(fname).each_record do |rec|
-#         host_f.puts rec
-#         host_f.puts ">#{rec.id}___reverse\n#{rec.seq.reverse}"
-#       end
-#     end
-#
-#     vir_f.fsync
-#     host_f.fsync
-#
-#     cmd = "mummer -maxmatch -l 15 #{host_f.path} #{vir_f.path} > /Users/moorer/Desktop/mummer.OUT"
-#     Process.run_and_time_it! "MUMMER", cmd
-#   end
-# end
-#
-# header   = nil
-# hits     = []
-# hit_info = {}
-# virus = nil
-#
-# File.open("/Users/moorer/Desktop/mummer.OUT", "rt").each_line.with_index do |line, idx|
-#   if line.start_with? '>'
-#     virus = line.chomp.sub(/^>/, "").sub(/___reverse$/, "").strip
-#
-#     unless hit_info.has_key? virus
-#       hit_info[virus] = {}
-#     end
-#   else
-#     host, _, _, len = line.chomp.strip.split(" ")
-#     host = host.sub(/___reverse$/, "").strip
-#
-#     unless hit_info[virus].has_key? host
-#       hit_info[virus][host] = -1
-#     end
-#
-#     hit_info[virus][host] = len.to_i if len.to_i > hit_info[virus][host]
-#   end
-# end
-#
-# puts
-#
-# hh = hit_info.map do |virus, info|
-#   [virus, info.to_a.sort_by {|gen, len| len}.reverse]
-# end
-#
-# pp hh
-
-# hh = hit_info.map do |virus, info|
-#   [virus, info.to_a.sort_by { |host, hit_len| hit_len }.reverse
-#
-# end
-# p hit_info
 
 scores_files = {}
 programs.each do |program|
@@ -162,10 +98,14 @@ vhm_outf  = BigSimon::Runners.vir_host_matcher BigSimon::VHM, tmpdir_virus, tmpd
 # TODO separate the parser from the runner for mummer.
 host_info_mummer = BigSimon::Runners.mummer BigSimon::MUMMER, tmpdir_virus, tmpdir_host, tmpdir, threads
 
+# TODO separate the parser from the runner for homology
+host_info_homology = BigSimon::Runners.homology tmpdir_virus, tmpdir_host, tmpdir, threads
+
+
 host_info_wish = BigSimon::Parsers.wish wish_outf
 host_info_vhm  = BigSimon::Parsers.vir_host_matcher vhm_outf
 
-host_info_simple_names = BigSimon::Pipeline.collate_host_results [host_info_wish, host_info_vhm, host_info_mummer], programs
+host_info_simple_names = BigSimon::Pipeline.collate_host_results [host_info_wish, host_info_vhm, host_info_mummer, host_info_homology], programs
 host_info              = BigSimon::Pipeline.map_taxa host_info_simple_names, name_map_virus, name_map_host
 
 puts
