@@ -1,7 +1,7 @@
 PATH
   remote: .
   specs:
-    big_simon (0.2.0)
+    big_simon (0.2.1)
       parallel
       parse_fasta (~> 2.5, >= 2.5.2)
       rya (~> 0.4.0)
