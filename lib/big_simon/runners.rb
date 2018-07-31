@@ -6,7 +6,7 @@ module BigSimon
   class Runners
 
     # @note To match the other things, you'd like them to be key'd on the file name.
-    def self.mummer exe, vir_dir, host_dir, outdir, threads
+    def self.mummer exe, vir_dir, host_dir, outdir, threads, all_seq_lengths
       klass = Class.new.extend Rya::CoreExtensions::Math
       FileUtils.mkdir_p outdir
 
@@ -80,9 +80,16 @@ module BigSimon
             ary = line.strip.split " "
 
             host  = ary[0].sub(/___reverse$/, "").strip
-            score = ary[3].to_i
 
             Rya::AbortIf.assert hit_table[virus].has_key?(host)
+
+            Rya::AbortIf.assert all_seq_lengths[virus]
+            Rya::AbortIf.assert all_seq_lengths[host]
+
+            combined_seq_length = all_seq_lengths[virus] + all_seq_lengths[host]
+
+            score = ary[3].to_i / combined_seq_length * 1000
+
 
             # unless hit_table[virus].has_key? host
             #   hit_table[virus][host] = -1
@@ -213,7 +220,7 @@ module BigSimon
     # @note Assumes that the files end with *.fa
     # @note Assumes that the file names match the IDs.  This SHOULD be taken care of by the big_simon program.
     # @todo assert that fname thing matches sequence ID name.
-    def self.homology vir_dir, host_dir, outdir, threads
+    def self.homology vir_dir, host_dir, outdir, threads, all_seq_lengths
       FileUtils.mkdir_p outdir
 
       host_orfs          = File.join outdir, "host_orfs.homology"
@@ -272,6 +279,13 @@ module BigSimon
 
           Rya::AbortIf.assert blast_table.has_key?(vir_id), "blast_table: got #{vir_id} should have been #{vir_simple_fname}"
 
+          Rya::AbortIf.assert all_seq_lengths[vir_id]
+          Rya::AbortIf.assert all_seq_lengths[host_id]
+
+          combined_seq_length = all_seq_lengths[vir_id] + all_seq_lengths[host_id]
+          score = score / combined_seq_length.to_f * 1000
+
+
           blast_table[vir_id][host_id] += score
         end
 
@@ -309,7 +323,10 @@ module BigSimon
           collated_blast_table[vir_id] = []
 
           host_simple_names.each do |host_id|
-            scaled_score = klass.scale host_scores[host_id], 0, max_score, 1, 0
+
+
+            combined_seq_length = all_seq_lengths[vir_id] + all_seq_lengths[host_id]
+            scaled_score = klass.scale host_scores[host_id].to_f, 0, max_score, 1, 0
 
             host_table = { host: host_id, score: host_scores[host_id], scaled_score: scaled_score }
             collated_blast_table[vir_id] << host_table

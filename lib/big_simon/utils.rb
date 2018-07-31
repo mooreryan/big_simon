@@ -74,6 +74,8 @@ draw.heatmap("#{in_fname}", "#{out_fname}")
     def self.set_up_tmp_dirs fastas, tmpdir, which
       Object::FileUtils.mkdir_p tmpdir
 
+      seq_lengths = {}
+
       name_map = {}
       all_ids  = Set.new
 
@@ -92,6 +94,8 @@ draw.heatmap("#{in_fname}", "#{out_fname}")
 
             outfname = File.join tmpdir, "#{new_id}.fa"
 
+            seq_lengths[new_id] = rec.seq.length
+
             File.open(outfname, "w") do |f|
               f.puts ">#{new_id}\n#{rec.seq}" # TODO HERE
             end
@@ -99,7 +103,7 @@ draw.heatmap("#{in_fname}", "#{out_fname}")
         end
       end
 
-      [name_map, all_ids]
+      [name_map, all_ids, seq_lengths]
     end
 
     def self.strip_suffix fname

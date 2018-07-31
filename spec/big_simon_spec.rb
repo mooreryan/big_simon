@@ -83,16 +83,19 @@ RSpec.describe BigSimon do
     # Scale to the overall max, and 0, the theoretical min.
     #
     # host_3 won't show up in the mummer output file.
+    #
+
+    multiplier = 1000
 
     { # H1 is 2971, H2 is 2163
       "virus_1" => [# AJ
-        { host: "host_1", score: 19, scaled_score: klass.scale(19, 0, 22, 1, 0) }, # virus_1 to host_1 and others
-        { host: "host_2", score: 19, scaled_score: klass.scale(19, 0, 22, 1, 0) }, # this one is from virus_1_reverse to host_2
+        { host: "host_1", score: 19 * multiplier, scaled_score: klass.scale(19 * multiplier, 0, 22 * multiplier, 1, 0) }, # virus_1 to host_1 and others
+        { host: "host_2", score: 19 * multiplier, scaled_score: klass.scale(19 * multiplier, 0, 22 * multiplier, 1, 0) }, # this one is from virus_1_reverse to host_2
         { host: "host_3", score: 0, scaled_score: 1.0 },
       ],
       "virus_2" => [# DQ
-        { host: "host_1", score: 18, scaled_score: klass.scale(18, 0, 22, 1, 0) },
-        { host: "host_2", score: 22, scaled_score: klass.scale(22, 0, 22, 1, 0) },
+        { host: "host_1", score: 18 * multiplier, scaled_score: klass.scale(18 * multiplier, 0, 22 * multiplier, 1, 0) },
+        { host: "host_2", score: 22 * multiplier, scaled_score: klass.scale(22 * multiplier, 0, 22 * multiplier, 1, 0) },
         { host: "host_3", score: 0, scaled_score: 1.0 },
       ],
       "virus_3" => [ # A fake one with no hosts and also not even in the mummer output
@@ -104,17 +107,19 @@ RSpec.describe BigSimon do
   end
   let(:parsed_output_homology) do
     klass = Class.new.extend Rya::CoreExtensions::Math
-    min, max, from, to = 0, 234.0, 1, 0
+    multiplier = 1000
+
+    min, max, from, to = 0, 234.0 * multiplier, 1, 0
 
     {
       "virus_1" => [# AJ
         { host: "host_1", score: 0, scaled_score: klass.scale(0, min, max, from, to) },
-        { host: "host_2", score: 234.0, scaled_score: klass.scale(234.0, min, max, from, to) },
+        { host: "host_2", score: 234.0 * multiplier, scaled_score: klass.scale(234.0 * multiplier, min, max, from, to) },
         { host: "host_3", score: 0, scaled_score: 1.0 },
       ],
       "virus_2" => [# DQ
-        { host: "host_1", score: 39.9, scaled_score: klass.scale(39.9, min, max, from, to) },
-        { host: "host_2", score: 201.4, scaled_score: klass.scale(201.4, min, max, from, to) },
+        { host: "host_1", score: 39.9 * multiplier, scaled_score: klass.scale(39.9 * multiplier, min, max, from, to) },
+        { host: "host_2", score: 201.4 * multiplier, scaled_score: klass.scale(201.4 * multiplier, min, max, from, to) },
         { host: "host_3", score: 0, scaled_score: 1.0 },
       ],
       "virus_3" => [ # A fake one with no hosts and also not even in the mummer output
@@ -122,6 +127,16 @@ RSpec.describe BigSimon do
         { host: "host_2", score: 0, scaled_score: 1.0 },
         { host: "host_3", score: 0, scaled_score: 1.0 },
       ]
+    }
+  end
+  let(:fake_seq_lengths) do
+    {
+      "virus_1" => 1,
+      "virus_2" => 1,
+      "virus_3" => 1,
+      "host_1" => 0,
+      "host_2" => 0,
+      "host_3" => 0,
     }
   end
 
@@ -325,7 +340,7 @@ RSpec.describe BigSimon do
         expected_output = parsed_output_homology
 
         expect {
-          actual_output = BigSimon::Runners.homology vdir, hdir, odir, threads
+          actual_output = BigSimon::Runners.homology vdir, hdir, odir, threads, fake_seq_lengths
         }.not_to raise_error
 
         expect(actual_output).to eq expected_output
@@ -343,7 +358,7 @@ RSpec.describe BigSimon do
       it "calculates matches" do
         actual_results = nil
         expect {
-          actual_results = BigSimon::Runners.mummer exe, vdir, hdir, odir, threads
+          actual_results = BigSimon::Runners.mummer exe, vdir, hdir, odir, threads, fake_seq_lengths
         }.not_to raise_error
 
         expect(actual_results).to eq parsed_output_mummer
@@ -412,7 +427,7 @@ RSpec.describe BigSimon do
           base = File.basename infile, ext
 
           outfile = File.join outdir, "#{base}.heatmap.pdf"
-          expected_outfiles << outfile
+          expected_outfiles << File.absolute_path(outfile)
 
           expect(File).to exist outfile
         end

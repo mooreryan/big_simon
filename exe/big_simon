@@ -73,8 +73,10 @@ tmpdir_host  = File.join tmpdir, "host"
 mean_scaled_scores_fname = File.join outdir, "scores_scaled.mean.txt"
 
 
-name_map_virus, all_ids_virus = BigSimon::Utils.set_up_tmp_dirs virus_fnames, tmpdir_virus, "virus"
-name_map_host, all_ids_host   = BigSimon::Utils.set_up_tmp_dirs host_fnames, tmpdir_host, "host"
+name_map_virus, all_ids_virus, vir_seq_lengths = BigSimon::Utils.set_up_tmp_dirs virus_fnames, tmpdir_virus, "virus"
+name_map_host, all_ids_host, host_seq_lengths   = BigSimon::Utils.set_up_tmp_dirs host_fnames, tmpdir_host, "host"
+
+all_seq_lengths = vir_seq_lengths.merge host_seq_lengths
 
 wish_outf = BigSimon::Runners.wish BigSimon::WISH, tmpdir_virus, tmpdir_host, tmpdir, threads
 vhm_outf  = BigSimon::Runners.vir_host_matcher BigSimon::VHM, tmpdir_virus, tmpdir_host, tmpdir

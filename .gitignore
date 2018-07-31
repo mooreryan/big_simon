@@ -39,3 +39,5 @@ spec/test_files/homology_files/output/*homology*
 pec/test_files/mummer_files/output/mummer_out.txt
 
 tmp.prodigal.stdin.5129
+
+spec/test_files/mummer_files/output/
